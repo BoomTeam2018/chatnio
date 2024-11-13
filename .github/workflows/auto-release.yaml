@@ -1,0 +1,40 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release Draft
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+          body: |
+            ## Full Changelog
+            View the full details of what has changed in this release: [${{ github.ref_name }}...previous_tag](https://github.com/BoomTeam2018/chatboom/compare/${{ github.ref_name }}...previous_tag)
+
+            ## Release Notes
+
+            ### New Features
+            - Describe new features here
+
+            ### Improvements & Refactoring
+            - List improvements and refactoring changes here
+
+            ### Fixes
+            - List bug fixes here
+
+            ### Documentation & Miscellaneous
+            - Updates to documentation and miscellaneous changes
+
+            ### Development & Debugging
+            - Details on development and debugging efforts
