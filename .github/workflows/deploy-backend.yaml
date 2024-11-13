@@ -1,0 +1,56 @@
+name: Deploy Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag to deploy (default is latest)'
+        required: false
+        default: 'latest'
+  workflow_run:
+    workflows: [ "Docker Image CD" ]
+    types:
+      - completed
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup SSH Keys
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Add SSH key to known_hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh -T ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            cd ${{ secrets.DOCKER_COMPOSE_PATH }}
+            export MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+            export MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+            export MYSQL_USER=${{ secrets.MYSQL_USER }}
+            export MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export MYSQL_HOST=${{ secrets.MYSQL_HOST }}
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
+          EOF
+        env:
+          DOCKER_IMAGE: programzmh/chatnio
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+      - name: Determine image tag
+        id: set_tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "::set-output name=tag::${{ github.event.inputs.tag }}"
+          else
+            echo "::set-output name=tag::stable"
+          fi
