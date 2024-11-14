@@ -37,14 +37,14 @@ jobs:
             export MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
             export MYSQL_USER=${{ secrets.MYSQL_USER }}
             export MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export DOCKER_HUB_USERNAME=${{ secrets.DOCKER_HUB_USERNAME }}
             export MYSQL_HOST=${{ secrets.MYSQL_HOST }}
             docker-compose down
             docker-compose pull
             docker-compose up -d
           EOF
         env:
-          DOCKER_IMAGE: programzmh/chatnio
+          DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/chatnio
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
       - name: Determine image tag
         id: set_tag
