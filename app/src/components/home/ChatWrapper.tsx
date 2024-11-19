@@ -35,6 +35,7 @@ import ScrollAction from "@/components/home/assemblies/ScrollAction.tsx";
 import { cn } from "@/components/ui/lib/utils.ts";
 import { goAuth } from "@/utils/app.ts";
 import { getModelFromId } from "@/conf/model.ts";
+import MainFooter from "@/components/home/MainFooter.tsx";
 
 type InterfaceProps = {
   scrollable: boolean;
@@ -170,34 +171,37 @@ function ChatWrapper() {
         <div className={`chat-input`}>
           <div className={`input-action`}>
             <ScrollAction
-              visible={visible}
-              setVisibility={setVisibility}
-              target={instance}
+                visible={visible}
+                setVisibility={setVisibility}
+                target={instance}
             />
-            <WebAction visible={!visible} />
-            <FileAction files={files} dispatch={fileDispatch} />
-            <EditorAction value={input} onChange={setInput} />
-            <MaskAction />
-            <MarketAction />
-            <SettingsAction />
+            <WebAction visible={!visible}/>
+            <FileAction files={files} dispatch={fileDispatch}/>
+            <EditorAction value={input} onChange={setInput}/>
+            <MaskAction/>
+            <MarketAction/>
+            <SettingsAction/>
           </div>
           <div className={`input-wrapper`}>
             <div className={`chat-box no-scrollbar`}>
               <ChatInput
-                className={cn(align && "align")}
-                target={target}
-                value={input}
-                onValueChange={setInput}
-                onEnterPressed={handleSend}
+                  className={cn(align && "align")}
+                  target={target}
+                  value={input}
+                  onValueChange={setInput}
+                  onEnterPressed={handleSend}
               />
             </div>
             <ActionButton
-              working={working}
-              onClick={() => (working ? handleCancel() : handleSend())}
+                working={working}
+                onClick={() => (working ? handleCancel() : handleSend())}
             />
           </div>
           <div className={`input-options`}>
-            <ModelFinder side={`bottom`} />
+            <ModelFinder side={`bottom`}/>
+          </div>
+          <div className={`input-options`}>
+            <MainFooter/>
           </div>
         </div>
       </div>
