@@ -34,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog.tsx";
 import { AlertDialogTitle } from "@radix-ui/react-alert-dialog";
-import { buyQuota } from "@/api/addition.ts";
+import {buyQuota} from "@/api/addition.ts";
 import { useToast } from "@/components/ui/use-toast.ts";
 import { useEffectAsync } from "@/utils/hook.ts";
 import { selectAuthenticated, selectUsername } from "@/store/auth.ts";
@@ -251,6 +251,23 @@ function QuotaDialog() {
                                   `${buyLink}?quota=${amount}&username=${username}`,
                                   "_blank",
                                 );
+                                const res = await buyQuota(amount);
+                                if (res.status) {
+                                  toast({
+                                    title: t("buy.success"),
+                                    description: t("buy.success-prompt", {
+                                      amount,
+                                    }),
+                                  });
+                                  dispatch(closeDialog());
+                                } else {
+                                  toast({
+                                    title: t("buy.failed"),
+                                    description: `${t("buy.failed-prompt", {
+                                      amount,
+                                    })}\n${res.error}`,
+                                  });
+                                }
                                 return;
                               }
                               const res = await buyQuota(amount);
