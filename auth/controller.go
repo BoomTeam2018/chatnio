@@ -46,6 +46,12 @@ type SubscribeForm struct {
 	Month int `json:"month" binding:"required"`
 }
 
+type IncreaseQuotaForm struct {
+	OutTradeNo string  `json:"outtradeno" binding:"required"`
+	Username   string  `json:"username" binding:"required"`
+	Quota      float32 `json:"quota" binding:"required"`
+}
+
 func GetUser(c *gin.Context) *User {
 	if c.GetBool("auth") {
 		return &User{
@@ -521,4 +527,122 @@ func RedeemAPI(c *gin.Context) {
 			"quota":  quota,
 		})
 	}
+}
+
+func IncreaseQuotaAPI(c *gin.Context) {
+	// 获取数据库实例
+	db := utils.GetDBFromContext(c)
+
+	// 定义并绑定请求参数
+	var form IncreaseQuotaForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		c.JSON(400, gin.H{
+			"status": false,
+			"error":  "Invalid request parameters",
+		})
+		return
+	}
+
+	// 验证配额范围
+	if form.Quota <= 0 || form.Quota > 99999 {
+		c.JSON(400, gin.H{
+			"status": false,
+			"error":  "Invalid quota range (1 ~ 99999)",
+		})
+		return
+	}
+
+	// 查询订单是否存在且未处理
+	var status int
+	if err := db.QueryRow(
+		"SELECT status FROM orders WHERE order_number = ?",
+		form.OutTradeNo,
+	).Scan(&status); err != nil {
+		c.JSON(400, gin.H{
+			"status": false,
+			"error":  "Invalid or missing order",
+		})
+		return
+	}
+
+	// 如果订单已经被处理，直接返回
+	if status == 1 {
+		c.JSON(200, gin.H{
+			"status": false,
+			"error":  "Order already processed",
+		})
+		return
+	}
+
+	// 查找用户
+	var userID int
+	if err := db.QueryRow(
+		"SELECT id FROM auth WHERE username = ?",
+		form.Username,
+	).Scan(&userID); err != nil {
+		c.JSON(400, gin.H{
+			"status": false,
+			"error":  "User not found",
+		})
+		return
+	}
+
+	// 更新用户配额
+	// 检查 user_id 是否存在
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM quota WHERE user_id = ?)", userID).Scan(&exists)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": false,
+			"error":  "failed to query user_id",
+		})
+		return
+	}
+
+	// 如果不存在，插入新记录
+	if !exists {
+		_, err := db.Exec(
+			"INSERT INTO quota (user_id, quota, used) VALUES (?, ?, 0)",
+			userID, form.Quota,
+		)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"status": false,
+				"error":  "Failed to insert quota record",
+			})
+			return
+		}
+	} else {
+		// 如果存在，执行更新
+		_, err := db.Exec(
+			"UPDATE quota SET quota = quota + ? WHERE user_id = ?",
+			form.Quota, userID,
+		)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"status": false,
+				"error":  "Failed to update quota",
+			})
+			return
+		}
+	}
+
+	// 更新订单状态为已处理
+	_, err = db.Exec(
+		"UPDATE orders SET status = 1 WHERE order_number = ?",
+		form.OutTradeNo,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": false,
+			"error":  "Failed to update order status",
+		})
+		return
+	}
+
+	// 返回成功响应
+	c.JSON(200, gin.H{
+		"status":  true,
+		"message": "Quota increased successfully",
+	})
 }
